@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garden</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Vườn thông minh - Nhóm 14</h1>
+    <section id="dashboard">
+        <!-- Dữ liệu cảm biến hiện tại -->
+        <div class="dashboard-item">
+            <h2>Dữ liệu cảm biến</h2>
+            <div class="sensor-data">
+                <span class="label">Nhiệt độ:</span>
+                <span class="value" id="temperature">--</span>
+                <span>°C</span>
+            </div>
+            <div class="sensor-data">
+                <span class="label">Độ ẩm:</span>
+                <span class="value" id="humidity">--</span>
+                <span>.%</span>
+            </div>
+            <div class="sensor-data">
+                <span class="label">Độ sáng:</span>
+                <span class="value" id="light">--</span>
+                <span>.%</span>
+            </div>
+            <div class="sensor-data">
+                <span class="label">Độ ẩm đất:</span>
+                <span class="value" id="soilMoisture">--</span>
+                <span>.%</span>
+            </div>
+        </div>
+
+        <!-- Bảng điều khiển -->
+        <div class="dashboard-item">
+            <h2>Bảng điều khiển</h2>
+            <div id="control-board">
+                <button id="waterButton">Tưới nước</button>
+                <button id="fanButton">Bật quạt</button>
+                <input type="text" id="timeInput" class="input-text" placeholder="Nhập thời gian">
+                <button id="setButton">Đặt giờ</button>
+            </div>
+        </div>
+
+        <!-- Đồ thị kết hợp -->
+        <div class="dashboard-item">
+            <h2>Đồ thị dữ liệu</h2>
+            <canvas id="combinedChart"></canvas>
+        </div>
+
+        <!-- Lịch sử tưới nước -->
+        <div class="dashboard-item">
+            <h2>Lịch sử tưới cây</h2>
+            <ul id="watering-list"></ul>
+        </div>        
+    
+    </section>
+
+<!-- Backend -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+import { getDatabase, ref, set, get, onValue, limitToLast, query, push} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyArhTkzy2e5vHxVLb2Kd3BKdFqrJRXaNHI",
+    authDomain: "smart-garden-5caaa.firebaseapp.com",
+    databaseURL: "https://smart-garden-5caaa-default-rtdb.firebaseio.com",
+    projectId: "smart-garden-5caaa",
+    storageBucket: "smart-garden-5caaa.firebasestorage.app",
+    messagingSenderId: "61502279522",
+    appId: "1:61502279522:web:cb079b6117c6107652a63b",
+    measurementId: "G-7HQWH7EV6C"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const database = getDatabase(app);
+
+/* Hiển thị dữ liệu cảm biến thời gian thực */
+onValue(ref(database, "sensor"), (snapshot) => {
+    const data = snapshot.val();
+    document.getElementById('temperature').innerText = data.t;
+    document.getElementById('humidity').innerText = data.h;
+    document.getElementById('light').innerText = data.as;
+    document.getElementById('soilMoisture').innerText = data.ad;
+});
+
+/* Lấy dữ liệu lịch sử tưới từ Firebase và hiển thị */
+function renderWateringHistory() {
+    const wateringList = document.getElementById('watering-list');
+    const wateringRef = ref(database, '/watering_history');
+
+    // Lắng nghe sự thay đổi dữ liệu từ Firebase
+    onValue(wateringRef, (snapshot) => {
+        const data = snapshot.val();
+
+        // Làm rỗng danh sách trước khi cập nhật
+        wateringList.innerHTML = '';
+
+        // Kiểm tra nếu có dữ liệu
+        if (data) {
+            // Chuyển dữ liệu Firebase (mảng) thành danh sách
+            Object.values(data).forEach((item, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${index + 1}. ${item.time}`;
+                wateringList.appendChild(listItem);
+            });
+        } else {
+            wateringList.innerHTML = '<li>No watering history available</li>';
+        }
+    });
+}
+
+// Gọi hàm để hiển thị danh sách khi trang được tải
+document.addEventListener('DOMContentLoaded', renderWateringHistory);
+
+/* Phần vẽ đồ thị */
+function formatTime(timeString) { // Hàm xử lý và lấy giờ, phút từ thời gian ISO
+    const date = new Date(timeString); // Chuyển chuỗi thời gian thành đối tượng Date
+    const hours = date.getHours().toString().padStart(2, '0'); // Lấy giờ và đảm bảo là 2 chữ số
+    const minutes = date.getMinutes().toString().padStart(2, '0'); // Lấy phút và đảm bảo là 2 chữ số
+    return `${hours}:${minutes}`; // Trả về dạng HH:mm
+}
+
+// Hàm lấy dữ liệu từ Firebase và vẽ đồ thị
+function getSensorDataAndPlot() {
+    const sensorRef = ref(database, '/sensor_data'); // Chỉ đường dẫn đến dữ liệu cảm biến
+    const timeLabels = [];  // Mảng chứa thời gian (labels cho trục X)
+    const temperatureData = [];  // Mảng chứa dữ liệu nhiệt độ
+    const humidityData = [];  // Mảng chứa dữ liệu độ ẩm
+    const lightData = [];  // Mảng chứa dữ liệu ánh sáng
+    const moistureData = [];  // Mảng chứa dữ liệu độ ẩm đất
+
+    // Lắng nghe sự thay đổi dữ liệu từ Firebase
+    onValue(sensorRef, (snapshot) => {
+        const data = snapshot.val();
+
+        // Làm rỗng mảng dữ liệu cũ mỗi khi dữ liệu thay đổi
+        timeLabels.length = 0;
+        temperatureData.length = 0;
+        humidityData.length = 0;
+        lightData.length = 0;
+        moistureData.length = 0;
+
+        // Chuyển dữ liệu Firebase thành các mảng và lấy ra dữ liệu cần thiết
+        if (data) {
+            Object.values(data).forEach((item) => {
+                timeLabels.push(formatTime(item.time));  // Lấy thời gian đã được format
+                temperatureData.push(item.t);  // Nhiệt độ
+                humidityData.push(item.h);  // Độ ẩm
+                lightData.push(item.as);  // Ánh sáng
+                moistureData.push(item.ad);  // Độ ẩm đất
+            });
+        }
+
+        // Vẽ đồ thị
+        plotCharts(timeLabels, temperatureData, humidityData, lightData, moistureData);
+    });
+}
+
+// Hàm vẽ đồ thị bằng Chart.js
+function plotCharts(timeLabels, temperatureData, humidityData, lightData, moistureData) {
+    const ctx = document.getElementById('combinedChart').getContext('2d');
+
+    const combinedChart = new Chart(ctx, {
+        type: 'line',  // Chọn loại đồ thị là đường
+        data: {
+            labels: timeLabels,  // Dữ liệu thời gian cho trục X
+            datasets: [
+                {
+                    label: 'Temp(°C)',
+                    data: temperatureData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    fill: false,
+                    tension: 0.1,
+                },
+                {
+                    label: 'Humi(%)',
+                    data: humidityData,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    fill: false,
+                    tension: 0.1,
+                },
+                {
+                    label: 'Light(%)',
+                    data: lightData,
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    fill: false,
+                    tension: 0.1,
+                },
+                {
+                    label: 'SoilMoi(%)',
+                    data: moistureData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    fill: false,
+                    tension: 0.1,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                },
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    beginAtZero: false,
+                },
+                y: {
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+}
+
+// Gọi hàm lấy dữ liệu và vẽ đồ thị khi trang được tải
+document.addEventListener('DOMContentLoaded', getSensorDataAndPlot);
+
+/* Phần xử lý nút nhấn */
+var bomState
+var fanState
+var setState
+
+// Hiển thị dữ liệu cảm biến thời gian thực
+onValue(ref(database, "state"), (snapshot) => {
+    const data = snapshot.val();
+    bomState = data.bomState;
+    fanState = data.fanState;
+    setState = data.fanAuto;
+    setState = data.setState;
+    
+    document.getElementById("waterButton").textContent = bomState === 1 ? "Đang tưới" : "Tưới nước";
+    document.getElementById("fanButton").textContent = fanState === 1 ? "Tắt quạt" : "Bật quạt";
+    document.getElementById("setButton").textContent = setState === 1 ? "Đã đặt giờ" : "Đặt giờ";
+
+    const waterButton = document.getElementById("waterButton");
+    if (bomState === 1) waterButton.classList.add("button-disabled");
+    else waterButton.classList.remove("button-disabled");
+
+    const fanButton = document.getElementById("fanButton");
+    if (fanState === 1) fanButton.classList.add("button-actived");
+    else fanButton.classList.remove("button-actived");
+
+    const setButton = document.getElementById("setButton");
+    if (setState === 1) setButton.classList.add("button-actived");
+    else setButton.classList.remove("button-actived");
+});
+
+// Khi nhấn nút -> gửi lên Firebase
+document.getElementById("waterButton").addEventListener("click", () => {
+    if (bomState == 0) {
+        bomState = 1;
+        set(ref(database, '/state/bomState'), bomState);
+    }
+});
+
+document.getElementById("fanButton").addEventListener("click", () => {
+    fanState = fanState === 1 ? 0 : 1;
+    set(ref(database, '/state/fanState'), fanState);
+});
+
+document.getElementById("setButton").addEventListener("click", () => {
+    setState = setState === 1 ? 0 : 1;
+    set(ref(database, '/state/setState'), setState);
+
+    const setValue = document.getElementById("timeInput").value;
+    if (setState == 1) { // Kiểm tra nếu giá trị hợp lệ (là số)
+        if (!isNaN(setValue) && setValue.trim() !== "") {
+            set(ref(database, 'setValue'), parseInt(setValue));
+            console.log(`Đã gửi giá trị ${setValue} lên Firebase`);
+            alert("Đặt giờ thành công!");
+        } else {
+            alert("Vui lòng nhập giá trị hợp lệ!");
+            setState = 0;
+            set(ref(database, '/state/setState'), setState);
+        }
+    }
+});
+
+</script>
+<!-- Kết thúc backend -->
+
+
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+#include <Arduino.h>
+
+const int bomPin = 19;
+const int bombut = 27;
+uint8_t bomState = 0;
+uint8_t bomPressed = 0;
+
+const int fanPin = 18;
+const int fanbut = 26;
+uint8_t fanState = 0;
+uint8_t fanPressed = 0;
+
+uint8_t count = 0;
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(fanPin, OUTPUT);
+    pinMode(fanbut, INPUT_PULLUP);
+    pinMode(bomPin, OUTPUT);
+    pinMode(bombut, INPUT_PULLUP);
+}
+
+void loop() {
+    if(digitalRead(fanbut) == 0) {
+        delay(20);
+        if(digitalRead(fanbut) == 0 && fanPressed == 0) {
+            fanState = !fanState;
+            digitalWrite(fanPin, fanState);
+            count++;
+            Serial.println(count);
+            fanPressed = 1;
+        }
+    }
+    else fanPressed = 0;
+
+    if(digitalRead(bombut) == 0) {
+        delay(20);
+        if(digitalRead(bombut) == 0 && bomPressed == 0) {
+            bomState = !bomState;
+            digitalWrite(bomPin, bomState);
+            count++;
+            Serial.println(count);
+            bomPressed = 1;
+        }
+    }
+    else bomPressed = 0;
+}

@@ -1,0 +1,219 @@
+body {
+    /* Tổng thể trang */
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+h1 {
+    /* Tiêu đề chính */
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 28px;
+}
+
+#dashboard {
+    /* Bố cục 2x2 */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 2 cột */
+    gap: 10px;
+    /* Khoảng cách giữa các phần */
+    padding: 10px;
+    /* Lề trong với các phần tử */
+    max-width: 1000px;
+    margin: auto;
+    /* Lề ngoài với các phần tử khác */
+}
+
+/* Căn chỉnh các phần tử trong grid */
+.dashboard-item {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-item div {
+    padding-left: 100px;
+    padding-right: 100px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+    text-align: center;
+    margin: 5px 0;
+    /* Khoảng cách giữa các dòng */
+    font-size: 20px;
+    /* Kích thước chữ */
+}
+
+.dashboard-item h2 {
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 24px;
+}
+
+.dashboard-item ul {
+    margin: 5px;
+    text-align: center;
+}
+
+.sensor-data {
+    display: flex;
+    justify-content: space-between;
+    /* Căn chữ sang trái và số sang phải */
+    margin: 5px;
+    font-size: 16px;
+}
+
+.label {
+    flex: 1;
+    /* Đẩy nhãn (chữ) sang trái */
+    text-align: left;
+}
+
+.value {
+    flex: 0;
+    /* Căn giá trị (số) sang phải */
+    text-align: right;
+}
+
+.dashboard-item canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tùy chỉnh danh sách lịch sử tưới nước */
+#watering-list {
+    padding: 0;
+    list-style: none;
+    margin-top: 10px;
+    max-height: 200px;
+    /* Chiều cao tối đa */
+    overflow-y: auto;
+    /* Kích hoạt cuộn dọc */
+    border: 1px solid #ddd;
+    /* Thêm viền để phân biệt hộp */
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+#watering-list li {
+    background: #fff;
+    margin: 10px 10px;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    /* Đường phân cách giữa các mục */
+    font-size: 16px;
+}
+
+/* Phân bảng điều khiển */
+#control-board {
+    display: grid;
+    /* Kích hoạt Grid Layout */
+    grid-template-columns: 1fr 1fr;
+    /* 2 cột bằng nhau */
+    gap: 20px;
+    /* Khoảng cách giữa các ô */
+    padding: 20px;
+    text-align: center;
+}
+
+/* kích thước và hình dạng */
+#control-board button,
+#control-board .input-text {
+    width: 60%;
+    /* Lấp đầy ô của Grid */
+    height: 50px;
+    font-size: 16px;
+    text-align: center;
+    border: 1px solid #ccc;
+    /* Viền xám nhạt */
+    border-radius: 8px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    /* Căn giữa nội dung */
+}
+
+/* Nút Tưới nước */
+#waterButton {
+    background-color: #3b5bbf;
+    /* Màu xanh dương */
+    color: white;
+}
+
+#waterButton:hover {
+    background-color: #2e4b9e;
+}
+
+#waterButton:active {
+    background-color: #1f3d7a;
+}
+
+/* Nút Bật quạt (xanh lá cây) */
+#fanButton {
+    background-color: #28a745;
+    /* Màu xanh lá cây */
+    color: white;
+}
+
+#fanButton:hover {
+    background-color: #218838;
+}
+
+#fanButton:active {
+    background-color: #1e7e34;
+}
+
+/* Nút Set Time (đỏ) */
+#setButton {
+    background-color: #dc3545;
+    /* Màu đỏ */
+    color: white;
+}
+
+#setButton:hover {
+    background-color: #c82333;
+}
+
+#setButton:active {
+    background-color: #bd2130;
+}
+
+/* Trạng thái xám khi bomState = 1 */
+.button-disabled {
+    background-color: #6c757d !important;
+    /* Màu xám */
+    color: #ffffff;
+    /* Chữ trắng */
+    cursor: not-allowed;
+    /* Chuột hiển thị không cho phép */
+}
+
+.button-actived {
+    background-color: #6c757d !important;
+    /* Màu xám */
+    color: #ffffff;
+    /* Chữ trắng */
+}
+
+.wifi-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    width: 300px;
+    margin: 20px auto;
+}
+
+.input-text {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
